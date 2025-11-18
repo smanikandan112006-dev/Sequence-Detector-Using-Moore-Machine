@@ -55,72 +55,102 @@ The sequence detector should produce an output `Z = 1` whenever the input sequen
 ## **Program**
 
 ```verilog
-// Sequence Detector for "1011" using Moore Machine
-module moore_seq_detector(
-    input clk, reset, x,
-    output reg z
-);
-    // State encoding
-    parameter S0 = 3'b000,
-              S1 = 3'b001,
-              S2 = 3'b010,
-              S3 = 3'b011,
-              S4 = 3'b100;
-
-    reg [2:0] state, next_state;
-
-    // State transition logic
-  
-        endcase
-    end
+module mooresequence (clk,reset,in,out);
+ input clk;
+ input reset;
+ input in; 
+ output reg out; 
+ 
+ parameter S0 = 3'b000, // No match
+ S1 = 3'b001, // Detected '1'
+ S2 = 3'b010, // Detected '10'
+ S3 = 3'b011, // Detected '101'
+ S4 = 3'b100; // Detected '1011' (final)
+ reg [2:0] current_state, next_state;
+ always @(posedge clk or posedge reset) 
+ begin
+    if (reset)
+        current_state <= S0;
+    else
+        current_state <= next_state;
+ end
+ 
+always @(*) 
+begin
+ case (current_state)
+    S0: if (in) 
+            next_state = S1; 
+        else 
+            next_state = S0;
+    S1: begin
+        if (in)
+            next_state = S1;
+        else
+            next_state = S2;
+        end
+    S2: begin
+        if (in)
+            next_state = S3;
+        else
+            next_state = S0;
+        end
+    S3: begin
+        if (in)
+            next_state = S4;
+        else
+            next_state = S2;
+        end
+    S4: begin
+        if (in)
+            next_state = S1;
+        else
+            next_state = S0; 
+        end
+    default: next_state = S0;
+  endcase
+ end
+always @(*) 
+ begin
+ case (current_state)
+    S4: out = 1'b1;
+    default: out = 1'b0;
+ endcase
+ end
 endmodule
 ```
 ### Testbench
 ```
-module tb_moore_seq_detector;
-    reg clk, reset, x;
-    wire z;
+`timescale 1ns/1ps
+module tb_mooresequence;
+ reg clk, reset, in;
+ wire out;
+ mooresequence uut (clk,reset,in,out);
+ initial 
+ begin
+ clk = 0;
+ forever #5 clk = ~clk;
+ end
+ initial 
+ begin
+ reset = 1;
+ in = 0;
+ #12 reset = 0;
+ in = 1; #10; 
+ in = 0; #10; 
+ in = 1; #10; 
+ in = 1; #10; 
 
-    moore_seq_detector uut(clk, reset, x, z);
-
-    // Clock generation
-    always #5 clk = ~clk;
-
-    initial begin
-        clk = 0;
-        reset = 1;
-        x = 0;
-        #10 reset = 0;
-
-        // Input sequence: 1 0 1 1 0 1 0 1 1
-        x = 1; #10;
-        x = 0; #10;
-        x = 1; #10;
-        x = 1; #10;
-        x = 0; #10;
-        x = 1; #10;
-        x = 0; #10;
-        x = 1; #10;
-        x = 1; #10;
-        #10 $finish;
-    end
-
-    initial begin
-        $monitor("Time=%0t | X=%b | Z=%b | State=%b", $time, x, z, uut.state);
-    end
+ in = 1; #10; 
+ in = 0; #10; 
+ in = 0; #10; 
+ in = 1; #10; 
+ #20 $finish;
+ end
 endmodule
 ```
 ### Simulation Output
--
--
--
--
--
--
-Paste the output here
--
--
--
+![WhatsApp Image 2025-11-18 at 23 44 05_08993a07](https://github.com/user-attachments/assets/aa06083b-4207-4a19-8bc4-964115a60908)
+
 
 ### Result
 
